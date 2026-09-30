@@ -9,10 +9,11 @@ import 'package:timezone/timezone.dart' as tz;
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
-const String notificationChannelId = 'task_reminder_exact_channel';
+const String notificationChannelId = 'task_reminder_exact_channel_v2';
 const String notificationChannelName = 'Task Reminders';
 const String notificationChannelDesc =
-    'High priority channel for precise task reminders';
+    'High priority channel for precise task reminders with sound';
+const String notificationSoundName = 'notification_sound';
 
 /// Background/terminated notification action handler
 @pragma('vm:entry-point')
@@ -82,7 +83,7 @@ Future<void> _initializeNotifications() async {
     onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
   );
 
-  // Create High-Importance Android Notification Channel for Heads-up popups, sound & vibration
+  // Create High-Importance Android Notification Channel with custom sound & vibration
   final AndroidNotificationChannel androidNotificationChannel =
       AndroidNotificationChannel(
     notificationChannelId,
@@ -90,6 +91,7 @@ Future<void> _initializeNotifications() async {
     description: notificationChannelDesc,
     importance: Importance.max,
     playSound: true,
+    sound: const RawResourceAndroidNotificationSound(notificationSoundName),
     enableVibration: true,
     showBadge: true,
     vibrationPattern: Int64List.fromList([0, 1000, 500, 1000]),
@@ -99,6 +101,8 @@ Future<void> _initializeNotifications() async {
       flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
 
+  // Delete old channel (if present) so Android re-creates it with the new sound configuration
+  await androidPlugin?.deleteNotificationChannel(channelId: 'task_reminder_exact_channel');
   await androidPlugin?.createNotificationChannel(androidNotificationChannel);
 }
 
@@ -273,7 +277,7 @@ class _ReminderHomeScreenState extends State<ReminderHomeScreen> {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
 
-    // High-priority Android notification details for heads-up popup, vibration & sound
+    // High-priority Android notification details with custom chime sound, vibration & popup
     final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       notificationChannelId,
       notificationChannelName,
@@ -282,6 +286,7 @@ class _ReminderHomeScreenState extends State<ReminderHomeScreen> {
       priority: Priority.high,
       ticker: 'Task Reminder',
       playSound: true,
+      sound: const RawResourceAndroidNotificationSound(notificationSoundName),
       enableVibration: true,
       vibrationPattern: Int64List.fromList([0, 1000, 500, 1000]),
       fullScreenIntent: true,
@@ -294,6 +299,7 @@ class _ReminderHomeScreenState extends State<ReminderHomeScreen> {
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
+      sound: 'notification_sound.wav',
       interruptionLevel: InterruptionLevel.timeSensitive,
     );
 
